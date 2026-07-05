@@ -4,3 +4,6 @@ linux/release
 build
 compile_commands.json
 thirdparty
+.cache/index.db
+.cache/index.db-journal
+external/imgui
