@@ -15,6 +15,11 @@ enum border {
 	GREEN_RED
 };
 
+strafe_data_t g_StrafeData = { 0.0f, 0.0f, 0.0f, false, 0, false, 0 };
+
+cvar_t* cl_speedometer = nullptr;
+cvar_t* cl_speedometer_show_strafes = nullptr;
+
 int CHudStrafeGuide::Init()
 {
 	m_iFlags = HUD_ACTIVE;
@@ -23,6 +28,9 @@ int CHudStrafeGuide::Init()
 	hud_strafeguide_zoom = CVAR_CREATE("hud_strafeguide_zoom", "1", FCVAR_ARCHIVE);
 	hud_strafeguide_height = CVAR_CREATE("hud_strafeguide_height", "0", FCVAR_ARCHIVE);
 	hud_strafeguide_size = CVAR_CREATE("hud_strafeguide_size", "0", FCVAR_ARCHIVE);
+
+	cl_speedometer = CVAR_CREATE("cl_speedometer", "1", FCVAR_ARCHIVE);
+	cl_speedometer_show_strafes = CVAR_CREATE("cl_speedometer_show_strafes", "1", FCVAR_ARCHIVE);
 
 	gHUD.AddHudElem(this);
 	return 0;
@@ -112,6 +120,23 @@ void CHudStrafeGuide::Update(struct ref_params_s *pparams)
 	auto input = std::complex<double>(pparams->cmd->forwardmove, pparams->cmd->sidemove);
 	double viewAngle = pparams->viewangles[1] / 180 * M_PI;
 	
+	std::complex<double> velocity = lastSimvel;
+	lastSimvel = std::complex<double>(pparams->simvel[0], pparams->simvel[1]);
+	double velocityAbs = std::abs(velocity);
+	bool onground = pparams->onground;
+
+	// Update base strafe data
+	g_StrafeData.speed = (float)velocityAbs;
+	g_StrafeData.on_ground = onground;
+	g_StrafeData.keys = pparams->cmd->buttons;
+
+	static double last_speed = 0.0;
+	if (frameTime > 0.0)
+	{
+		g_StrafeData.accel = (float)((velocityAbs - last_speed) / frameTime);
+	}
+	last_speed = velocityAbs;
+
 	if (std::norm(input) == 0) {
 		for (int i = 0; i < 4; ++i) {
 			if (i < 2)
@@ -119,13 +144,12 @@ void CHudStrafeGuide::Update(struct ref_params_s *pparams)
 			else
 				angles[i] = -M_PI;
 		}
+		g_StrafeData.wrong_key = false;
+		g_StrafeData.strafe_state = 0; // none
+		g_StrafeData.efficiency = 0.0f;
 		return;
 	}
 
-	std::complex<double> velocity = lastSimvel;
-	lastSimvel = std::complex<double>(pparams->simvel[0], pparams->simvel[1]);
-
-	bool onground = pparams->onground;
 	double accelCoeff = onground ? pparams->movevars->accelerate : pparams->movevars->airaccelerate;
 	//TODO: grab the entity friction from somewhere. pparams->movevars->friction is sv_friction
 	//just use the default 1 for now
@@ -140,7 +164,6 @@ void CHudStrafeGuide::Update(struct ref_params_s *pparams)
 	input *= inputAbs / std::abs(input);
 	
 	double uncappedAccel = accelCoeff * frictionCoeff * inputAbs * frameTime;
-	double velocityAbs = std::abs(velocity);
 	
 	if (uncappedAccel >= 2 * velocityAbs)
 		angles[RED_GREEN] = M_PI;
@@ -166,5 +189,46 @@ void CHudStrafeGuide::Update(struct ref_params_s *pparams)
 	for (int i = 0; i < 4; ++i) {
 		angles[i] += velocityAngle + inputAngle - viewAngle;
 		angles[i] = angleReduce(angles[i]);
+	}
+
+	// Calculate and fill strafe analyzer data
+	double actual_diff = std::abs(angleReduce(viewAngle - velocityAngle - inputAngle));
+	double opt_angle = (velocityAbs <= inputAbs) ? 0.0 : std::acos(inputAbs / velocityAbs);
+	double max_accel_angle = (uncappedAccel >= 2 * velocityAbs) ? M_PI : std::acos(-uncappedAccel / velocityAbs / 2);
+
+	double diff_to_opt = std::abs(actual_diff - opt_angle);
+
+	g_StrafeData.wrong_key = (!onground && ((pparams->cmd->buttons & IN_FORWARD) || (pparams->cmd->buttons & IN_BACK)));
+	
+	if (g_StrafeData.wrong_key)
+	{
+		g_StrafeData.strafe_state = 5; // wrong key
+		g_StrafeData.efficiency = 0.0f;
+	}
+	else if (velocityAbs < 50.0)
+	{
+		g_StrafeData.strafe_state = 0; // none
+		g_StrafeData.efficiency = 1.0f;
+	}
+	else if (diff_to_opt < 0.05) // within ~3 degrees
+	{
+		g_StrafeData.strafe_state = 1; // perfect
+		g_StrafeData.efficiency = 1.0f - (float)(diff_to_opt / 0.05) * 0.1f;
+	}
+	else if (actual_diff < opt_angle)
+	{
+		g_StrafeData.strafe_state = 2; // understrafe
+		g_StrafeData.efficiency = (opt_angle > 0.001) ? (float)(actual_diff / opt_angle) : 1.0f;
+	}
+	else if (actual_diff < max_accel_angle)
+	{
+		g_StrafeData.strafe_state = 3; // overstrafe
+		double range = max_accel_angle - opt_angle;
+		g_StrafeData.efficiency = (range > 0.001) ? (float)(1.0 - (actual_diff - opt_angle) / range) : 0.0f;
+	}
+	else
+	{
+		g_StrafeData.strafe_state = 4; // speed loss
+		g_StrafeData.efficiency = 0.0f;
 	}
 }

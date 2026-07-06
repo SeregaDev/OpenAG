@@ -1,6 +1,19 @@
 #pragma once
 #include <complex>
 
+struct strafe_data_t
+{
+	float speed;
+	float accel;
+	float efficiency;
+	bool wrong_key;
+	int strafe_state; // 0 = none, 1 = perfect, 2 = understrafe, 3 = overstrafe, 4 = speed loss, 5 = wrong key
+	bool on_ground;
+	int keys;
+};
+
+extern strafe_data_t g_StrafeData;
+
 class CHudStrafeGuide : public CHudBase
 {
 	double angles[6] = {0.};

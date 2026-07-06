@@ -546,6 +546,113 @@ void ImGuiHelper_Draw()
 			}
 		}
 		ImGui::End();
+
+		cvar_t* pSpeedometer = gEngfuncs.pfnGetCvarPointer("cl_speedometer");
+		bool speedometerEnabled = pSpeedometer ? (pSpeedometer->value != 0.0f) : true;
+		if (speedometerEnabled)
+		{
+			float sw_w = 260.0f;
+			float sw_h = 92.0f;
+			float sw_x = ((float)ScreenWidth - sw_w) / 2.0f;
+			float sw_y = (float)ScreenHeight - sw_h - 24.0f;
+
+			ImGui::SetNextWindowPos(ImVec2(sw_x, sw_y), ImGuiCond_Always);
+			ImGui::SetNextWindowSize(ImVec2(sw_w, sw_h));
+			if (ImGui::Begin("HUD Speedometer", nullptr, hud_flags))
+			{
+				ImDrawList* draw_list = ImGui::GetWindowDrawList();
+				ImVec2 p_min = ImGui::GetWindowPos();
+				ImVec2 p_max = ImVec2(p_min.x + sw_w, p_min.y + sw_h);
+				draw_list->AddRectFilled(p_min, p_max, ImColor(12, 12, 14, 180), 8.0f);
+				draw_list->AddRect(p_min, p_max, ImColor(40, 40, 48, 120), 8.0f, 0, 1.0f);
+
+				int speedVal = (int)std::round(g_StrafeData.speed);
+				float accelVal = g_StrafeData.accel;
+
+				ImVec4 speedColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+				if (accelVal > 15.0f)
+				{
+					speedColor = ImVec4(0.20f, 0.85f, 0.40f, 1.0f);
+				}
+				else if (accelVal < -15.0f)
+				{
+					speedColor = ImVec4(1.00f, 0.30f, 0.30f, 1.0f);
+				}
+
+				ImGui::SetCursorPos(ImVec2(15.0f, 12.0f));
+				ImGui::SetWindowFontScale(2.2f);
+				ImGui::TextColored(speedColor, "%d", speedVal);
+				ImGui::SetWindowFontScale(1.0f);
+
+				ImGui::SetCursorPos(ImVec2(90.0f, 26.0f));
+				ImGui::TextColored(ImVec4(0.55f, 0.55f, 0.60f, 1.0f), "ups");
+
+				cvar_t* pShowStrafes = gEngfuncs.pfnGetCvarPointer("cl_speedometer_show_strafes");
+				bool showStrafes = pShowStrafes ? (pShowStrafes->value != 0.0f) : true;
+				if (showStrafes)
+				{
+					int keys = g_StrafeData.keys;
+					bool holdA = (keys & IN_MOVELEFT) != 0;
+					bool holdD = (keys & IN_MOVERIGHT) != 0;
+					bool holdW = (keys & IN_FORWARD) != 0;
+					bool holdS = (keys & IN_BACK) != 0;
+
+					ImGui::SetCursorPos(ImVec2(135.0f, 12.0f));
+					if (!g_StrafeData.on_ground && (holdW || holdS))
+					{
+						float pulse = 0.5f + 0.5f * sinf((float)gEngfuncs.GetClientTime() * 10.0f);
+						ImGui::TextColored(ImVec4(1.0f, 0.1f * pulse, 0.1f * pulse, 1.0f), "%s%s", holdW ? "W" : "", holdS ? "S" : "");
+					}
+					else
+					{
+						ImGui::TextColored(ImVec4(0.4f, 0.4f, 0.45f, 1.0f), "%s%s", (holdW || holdS) ? "" : "-", (holdW || holdS) ? "" : "-");
+					}
+
+					ImGui::SetCursorPos(ImVec2(135.0f, 28.0f));
+					ImGui::TextColored(holdA ? ImVec4(0.20f, 0.85f, 0.40f, 1.0f) : ImVec4(0.4f, 0.4f, 0.45f, 1.0f), "A");
+					ImGui::SameLine();
+					ImGui::TextColored(holdD ? ImVec4(0.20f, 0.85f, 0.40f, 1.0f) : ImVec4(0.4f, 0.4f, 0.45f, 1.0f), "D");
+
+					const char* stateText = "IDLE";
+					ImVec4 stateColor = ImVec4(0.55f, 0.55f, 0.60f, 1.0f);
+
+					switch (g_StrafeData.strafe_state)
+					{
+						case 1:
+							stateText = "PERFECT";
+							stateColor = ImVec4(0.20f, 0.85f, 0.40f, 1.0f);
+							break;
+						case 2:
+							stateText = "TURN FASTER";
+							stateColor = ImVec4(0.90f, 0.80f, 0.20f, 1.0f);
+							break;
+						case 3:
+							stateText = "TURN SLOWER";
+							stateColor = ImVec4(0.95f, 0.50f, 0.10f, 1.0f);
+							break;
+						case 4:
+							stateText = "SPEED LOSS";
+							stateColor = ImVec4(1.00f, 0.20f, 0.20f, 1.0f);
+							break;
+						case 5:
+							stateText = "RELEASE W/S";
+							stateColor = ImVec4(1.00f, 0.10f, 0.10f, 1.0f);
+							break;
+					}
+
+					ImGui::SetCursorPos(ImVec2(15.0f, 58.0f));
+					ImGui::TextColored(stateColor, "%s", stateText);
+
+					int eff_pct = (int)std::round(g_StrafeData.efficiency * 100.0f);
+					if (g_StrafeData.strafe_state > 0 && g_StrafeData.strafe_state < 5)
+					{
+						ImGui::SetCursorPos(ImVec2(135.0f, 58.0f));
+						ImGui::TextColored(stateColor, "%d%% EFF", eff_pct);
+					}
+				}
+			}
+			ImGui::End();
+		}
 	}
 
 	if (g_ShowImGuiMenu)
@@ -883,6 +990,26 @@ void ImGuiHelper_Draw()
 					if (ImGui::SliderFloat("Viewmodel Z Offset (Up/Down)", &viewmodelOfsZVal, -8.0f, 8.0f, "%.1f"))
 					{
 						gEngfuncs.Cvar_SetValue("cl_viewmodel_ofs_up", viewmodelOfsZVal);
+					}
+				}
+			}
+
+			if (ImGui::CollapsingHeader("Speedometer & Strafe Analyzer"))
+			{
+				cvar_t* pSpeedometer = gEngfuncs.pfnGetCvarPointer("cl_speedometer");
+				bool speedometerVal = pSpeedometer ? (pSpeedometer->value != 0.0f) : true;
+				if (ImGui::Checkbox("Enable Speedometer HUD", &speedometerVal))
+				{
+					gEngfuncs.Cvar_SetValue("cl_speedometer", speedometerVal ? 1.0f : 0.0f);
+				}
+
+				if (speedometerVal)
+				{
+					cvar_t* pShowStrafes = gEngfuncs.pfnGetCvarPointer("cl_speedometer_show_strafes");
+					bool showStrafesVal = pShowStrafes ? (pShowStrafes->value != 0.0f) : true;
+					if (ImGui::Checkbox("Enable Strafe Analyzer & Key Overlay", &showStrafesVal))
+					{
+						gEngfuncs.Cvar_SetValue("cl_speedometer_show_strafes", showStrafesVal ? 1.0f : 0.0f);
 					}
 				}
 			}
