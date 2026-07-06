@@ -837,6 +837,30 @@ void ImGuiHelper_Draw()
 				}
 			}
 
+			if (ImGui::CollapsingHeader("FOV & Viewmodel Settings"))
+			{
+				cvar_t* pDefaultFov = gEngfuncs.pfnGetCvarPointer("default_fov");
+				float defaultFovVal = pDefaultFov ? pDefaultFov->value : 90.0f;
+				if (ImGui::SliderFloat("Default FOV", &defaultFovVal, 70.0f, 130.0f, "%.0f"))
+				{
+					gEngfuncs.Cvar_SetValue("default_fov", defaultFovVal);
+				}
+
+				cvar_t* pDrawViewmodel = gEngfuncs.pfnGetCvarPointer("r_drawviewmodel");
+				bool drawViewmodelVal = pDrawViewmodel ? (pDrawViewmodel->value != 0.0f) : true;
+				if (ImGui::Checkbox("Draw Viewmodel (Weapon)", &drawViewmodelVal))
+				{
+					gEngfuncs.Cvar_SetValue("r_drawviewmodel", drawViewmodelVal ? 1.0f : 0.0f);
+				}
+
+				cvar_t* pViewmodelFov = gEngfuncs.pfnGetCvarPointer("cl_viewmodel_fov");
+				float viewmodelFovVal = pViewmodelFov ? pViewmodelFov->value : 0.0f;
+				if (ImGui::SliderFloat("Viewmodel FOV", &viewmodelFovVal, 0.0f, 130.0f, "%.0f (0 to use default)"))
+				{
+					gEngfuncs.Cvar_SetValue("cl_viewmodel_fov", viewmodelFovVal);
+				}
+			}
+
 			if (ImGui::CollapsingHeader("Spawns Display Settings"))
 			{
 				cvar_t* pShowSpawns = gEngfuncs.pfnGetCvarPointer("cl_show_spawns");
