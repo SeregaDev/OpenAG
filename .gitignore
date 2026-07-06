@@ -8,3 +8,6 @@ thirdparty
 .cache/index.db-journal
 external/imgui
 /.cache
+.cache/ann/onnx_384_sentence-transformers_all-MiniLM-L6-v2.hnsw.bin
+.cache/ann/onnx_384_sentence-transformers_all-MiniLM-L6-v2.hnsw.meta.json
+.cache/index.db
