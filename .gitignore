@@ -7,3 +7,4 @@ thirdparty
 .cache/index.db
 .cache/index.db-journal
 external/imgui
+/.cache
