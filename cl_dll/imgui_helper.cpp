@@ -908,11 +908,18 @@ void ImGuiHelper_Draw()
 
 				if (motionBlurVal)
 				{
-					cvar_t* pMotionBlurAlpha = gEngfuncs.pfnGetCvarPointer("cl_motion_blur_alpha");
-					float motionBlurAlphaVal = pMotionBlurAlpha ? pMotionBlurAlpha->value : 0.6f;
-					if (ImGui::SliderFloat("Blur Trail Length (Alpha)", &motionBlurAlphaVal, 0.0f, 0.95f, "%.2f"))
+					cvar_t* pMotionBlurTime = gEngfuncs.pfnGetCvarPointer("cl_motion_blur_time");
+					float motionBlurTimeVal = pMotionBlurTime ? pMotionBlurTime->value : 0.15f;
+					if (ImGui::SliderFloat("Blur Trail Duration", &motionBlurTimeVal, 0.02f, 0.80f, "%.2f sec"))
 					{
-						gEngfuncs.Cvar_SetValue("cl_motion_blur_alpha", motionBlurAlphaVal);
+						gEngfuncs.Cvar_SetValue("cl_motion_blur_time", motionBlurTimeVal);
+					}
+
+					cvar_t* pMotionBlurChromatic = gEngfuncs.pfnGetCvarPointer("cl_motion_blur_chromatic");
+					float motionBlurChromaticVal = pMotionBlurChromatic ? pMotionBlurChromatic->value : 1.5f;
+					if (ImGui::SliderFloat("Chromatic Aberration (Fringing)", &motionBlurChromaticVal, 0.0f, 4.0f, "%.1f px"))
+					{
+						gEngfuncs.Cvar_SetValue("cl_motion_blur_chromatic", motionBlurChromaticVal);
 					}
 				}
 			}
