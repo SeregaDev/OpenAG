@@ -125,12 +125,28 @@ namespace bloom
 		glMatrixMode(GL_TEXTURE);
 		glLoadIdentity();
 
+		// Disable client vertex arrays to prevent crashes or using stale engine pointers in immediate mode glBegin/glEnd
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+		glDisableClientState(GL_COLOR_ARRAY);
+		glDisableClientState(GL_NORMAL_ARRAY);
+
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_ALPHA_TEST);
 		glDisable(GL_LIGHTING);
 		glDisable(GL_CULL_FACE);
 		glDisable(GL_SCISSOR_TEST);
+
+		// Ensure we are working on texture unit 0 and disable unit 1 and 2
+		glActiveTexture(GL_TEXTURE1);
+		glDisable(GL_TEXTURE_2D);
+		glActiveTexture(GL_TEXTURE2);
+		glDisable(GL_TEXTURE_2D);
+		glActiveTexture(GL_TEXTURE0);
 		glEnable(GL_TEXTURE_2D);
+
+		// Set texture environment to REPLACE to copy pixels exactly as they are without tinting
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
 		CheckGLError("Setup rendering state");
 
@@ -204,6 +220,9 @@ namespace bloom
 		// 6. Draw bloom texture additively over the whole screen in multiple passes for smooth blur
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE); // Additive blend
+
+		// Change texture environment to MODULATE so the texture color is multiplied by the quad color (glColor4f)
+		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 		glBindTexture(GL_TEXTURE_2D, g_BloomTexture);
 
