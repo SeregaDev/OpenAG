@@ -896,6 +896,25 @@ void ImGuiHelper_Draw()
 						gEngfuncs.Cvar_SetValue("cl_bloom_darkness", (float)bloomDarknessVal);
 					}
 				}
+
+				ImGui::Separator();
+
+				cvar_t* pMotionBlur = gEngfuncs.pfnGetCvarPointer("cl_motion_blur");
+				bool motionBlurVal = pMotionBlur ? (pMotionBlur->value != 0.0f) : false;
+				if (ImGui::Checkbox("Enable Motion Blur", &motionBlurVal))
+				{
+					gEngfuncs.Cvar_SetValue("cl_motion_blur", motionBlurVal ? 1.0f : 0.0f);
+				}
+
+				if (motionBlurVal)
+				{
+					cvar_t* pMotionBlurAlpha = gEngfuncs.pfnGetCvarPointer("cl_motion_blur_alpha");
+					float motionBlurAlphaVal = pMotionBlurAlpha ? pMotionBlurAlpha->value : 0.6f;
+					if (ImGui::SliderFloat("Blur Trail Length (Alpha)", &motionBlurAlphaVal, 0.0f, 0.95f, "%.2f"))
+					{
+						gEngfuncs.Cvar_SetValue("cl_motion_blur_alpha", motionBlurAlphaVal);
+					}
+				}
 			}
 
 			ImGui::Separator();

@@ -23,6 +23,7 @@
 #include "damage_numbers.h"
 #include "spawns.h"
 #include "bloom.h"
+#include "motion_blur.h"
 #include "vgui_TeamFortressViewport.h"
 
 extern cvar_t* cl_custom_hud;
@@ -278,7 +279,8 @@ int CHud :: Redraw( float flTime, int intermission )
 	item_timers::update_and_draw();
 	damage_numbers::update_and_draw();
 	spawns::update_and_draw();
-	bloom::draw();
+	// bloom::draw();
+	motion_blur::draw();
 
 	return 1;
 }

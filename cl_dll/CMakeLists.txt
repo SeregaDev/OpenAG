@@ -128,6 +128,8 @@ add_sources(
 	spawns.h
 	bloom.cpp
 	bloom.h
+	motion_blur.cpp
+	motion_blur.h
 	vgui_int.cpp
 	vgui_int.h
 	vgui_MOTDWindow.cpp
