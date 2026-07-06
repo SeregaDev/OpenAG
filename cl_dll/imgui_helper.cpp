@@ -309,6 +309,8 @@ void ImGuiHelper_Draw()
 	// Determine effective "in game" state
 	bool inGame = hasMap && !onBackgroundMap;
 
+	g_ShowMainMenu = false;
+	/*
 	if ((onBackgroundMap || !hasMap) && customMenuEnabled)
 	{
 		g_ShowMainMenu = true;
@@ -318,6 +320,7 @@ void ImGuiHelper_Draw()
 	{
 		g_ShowMainMenu = false;
 	}
+	*/
 
 	static bool lastAnyVisible = false;
 	bool anyVisible = g_ShowImGuiMenu || g_ShowCrosshairEditor || g_ShowAGSettings || g_ShowPauseMenu || g_ShowMainMenu || g_ShowServerBrowser;
@@ -331,6 +334,7 @@ void ImGuiHelper_Draw()
 	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
 
+	/*
 	// 1. Fullscreen Main Menu (when disconnected)
 	// Don't render the main menu when the server browser is open (it would overlap and eat all clicks)
 	if (g_ShowMainMenu && !g_ShowServerBrowser)
@@ -403,6 +407,7 @@ void ImGuiHelper_Draw()
 		ImGui::PopStyleColor();
 		ImGui::PopStyleVar(2);
 	}
+	*/
 
 	// 2. Pause Menu Overlay (when in-game and g_ShowPauseMenu is true)
 	if (g_ShowPauseMenu && inGame)
