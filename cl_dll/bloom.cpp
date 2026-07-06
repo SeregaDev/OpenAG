@@ -17,8 +17,19 @@ namespace bloom
 	static int g_LastWidth = 0;
 	static int g_LastHeight = 0;
 
+	static int NextPowerOfTwo(int n)
+	{
+		int val = 1;
+		while (val < n)
+			val *= 2;
+		return val;
+	}
+
 	static void InitTextures(int w, int h)
 	{
+		int tw = NextPowerOfTwo(w);
+		int th = NextPowerOfTwo(h);
+
 		if (g_ScreenTexture == 0 || g_LastWidth != w || g_LastHeight != h)
 		{
 			if (g_ScreenTexture != 0)
@@ -32,7 +43,7 @@ namespace bloom
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tw, th, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
 			g_LastWidth = w;
 			g_LastHeight = h;
@@ -72,6 +83,9 @@ namespace bloom
 			return;
 
 		InitTextures(w, h);
+
+		int tw = NextPowerOfTwo(w);
+		int th = NextPowerOfTwo(h);
 
 		// 1. Capture full screen into g_ScreenTexture
 		glBindTexture(GL_TEXTURE_2D, g_ScreenTexture);
@@ -114,11 +128,14 @@ namespace bloom
 		glDisable(GL_BLEND);
 		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
+		float u = (float)w / tw;
+		float v = (float)h / th;
+
 		glBegin(GL_QUADS);
 		glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, 0.0f);
-		glTexCoord2f(1.0f, 0.0f); glVertex2f(1.0f, 0.0f);
-		glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f, 1.0f);
-		glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, 1.0f);
+		glTexCoord2f(u,    0.0f); glVertex2f(1.0f, 0.0f);
+		glTexCoord2f(u,    v   ); glVertex2f(1.0f, 1.0f);
+		glTexCoord2f(0.0f, v   ); glVertex2f(0.0f, 1.0f);
 		glEnd();
 
 		// Apply contrast/darkness thresholding by multiplying the texture by itself (squaring the color values)
@@ -131,9 +148,9 @@ namespace bloom
 			{
 				glBegin(GL_QUADS);
 				glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, 0.0f);
-				glTexCoord2f(1.0f, 0.0f); glVertex2f(1.0f, 0.0f);
-				glTexCoord2f(1.0f, 1.0f); glVertex2f(1.0f, 1.0f);
-				glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, 1.0f);
+				glTexCoord2f(u,    0.0f); glVertex2f(1.0f, 0.0f);
+				glTexCoord2f(u,    v   ); glVertex2f(1.0f, 1.0f);
+				glTexCoord2f(0.0f, v   ); glVertex2f(0.0f, 1.0f);
 				glEnd();
 			}
 		}
@@ -143,7 +160,7 @@ namespace bloom
 		glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, 256, 256);
 
 		// 4. Restore original viewport
-		glViewport(0, 0, w, h);
+		glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
 		// 5. Restore bottom-left corner of the screen using the cached full screen texture
 		glBindTexture(GL_TEXTURE_2D, g_ScreenTexture);
@@ -153,11 +170,14 @@ namespace bloom
 		float tx = 256.0f / w;
 		float ty = 256.0f / h;
 
+		float u_restore = 256.0f / tw;
+		float v_restore = 256.0f / th;
+
 		glBegin(GL_QUADS);
-		glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, 0.0f);
-		glTexCoord2f(tx, 0.0f); glVertex2f(tx, 0.0f);
-		glTexCoord2f(tx, ty); glVertex2f(tx, ty);
-		glTexCoord2f(0.0f, ty); glVertex2f(0.0f, ty);
+		glTexCoord2f(0.0f,      0.0f);      glVertex2f(0.0f, 0.0f);
+		glTexCoord2f(u_restore, 0.0f);      glVertex2f(tx,   0.0f);
+		glTexCoord2f(u_restore, v_restore); glVertex2f(tx,   ty);
+		glTexCoord2f(0.0f,      v_restore); glVertex2f(0.0f,   ty);
 		glEnd();
 
 		// 6. Draw bloom texture additively over the whole screen in multiple passes for smooth blur
