@@ -58,10 +58,15 @@ namespace spawns
 		paths_to_try.push_back(level_name); // 1. Direct path
 		paths_to_try.push_back(std::string(gEngfuncs.pfnGetGameDirectory()) + "/" + level_name); // 2. Mod path
 		paths_to_try.push_back(std::string(gEngfuncs.pfnGetGameDirectory()) + "/maps/" + map_filename); // 3. Mod maps path
-		paths_to_try.push_back("valve_downloads/maps/" + map_filename); // 4. Downloads path
-		paths_to_try.push_back("valve_downloads/" + std::string(level_name)); // 5. Downloads level path
-		paths_to_try.push_back("valve/maps/" + map_filename); // 6. Fallback valve path
-		paths_to_try.push_back("valve/" + std::string(level_name)); // 7. Fallback level path
+		
+		// 4. Mod-specific downloads path (e.g. ag_downloads/maps/crossfire.bsp)
+		paths_to_try.push_back(std::string(gEngfuncs.pfnGetGameDirectory()) + "_downloads/maps/" + map_filename);
+		paths_to_try.push_back(std::string(gEngfuncs.pfnGetGameDirectory()) + "_downloads/" + std::string(level_name));
+		
+		paths_to_try.push_back("valve_downloads/maps/" + map_filename); // 5. Valve downloads path
+		paths_to_try.push_back("valve_downloads/" + std::string(level_name)); // 6. Valve downloads level path
+		paths_to_try.push_back("valve/maps/" + map_filename); // 7. Fallback valve path
+		paths_to_try.push_back("valve/" + std::string(level_name)); // 8. Fallback level path
 
 		for (const auto& path : paths_to_try)
 		{
@@ -104,28 +109,74 @@ namespace spawns
 						std::string entity_body = ent_str.substr(pos + 1, end_pos - pos - 1);
 						pos = end_pos + 1;
 
-						if (entity_body.find("\"classname\" \"info_player_deathmatch\"") != std::string::npos ||
-							entity_body.find("\"classname\" \"info_player_start\"") != std::string::npos)
+						// Extract all tokens in quotes
+						std::vector<std::string> tokens;
+						size_t t_pos = 0;
+						while (true)
 						{
-							size_t origin_pos = entity_body.find("\"origin\"");
-							if (origin_pos != std::string::npos)
+							size_t q1 = entity_body.find('"', t_pos);
+							if (q1 == std::string::npos)
+								break;
+							size_t q2 = entity_body.find('"', q1 + 1);
+							if (q2 == std::string::npos)
+								break;
+							tokens.push_back(entity_body.substr(q1 + 1, q2 - q1 - 1));
+							t_pos = q2 + 1;
+						}
+
+						std::string classname;
+						std::string origin_val;
+
+						for (size_t k = 0; k + 1 < tokens.size(); k += 2)
+						{
+							const std::string& key = tokens[k];
+							const std::string& val = tokens[k + 1];
+
+							// Case insensitive key comparison
+							bool is_classname = true;
+							if (key.size() == 9)
 							{
-								size_t val_start = entity_body.find('"', origin_pos + 8);
-								if (val_start != std::string::npos)
+								for (int char_idx = 0; char_idx < 9; char_idx++)
 								{
-									size_t val_end = entity_body.find('"', val_start + 1);
-									if (val_end != std::string::npos)
-									{
-										std::string origin_val = entity_body.substr(val_start + 1, val_end - val_start - 1);
-										float x, y, z;
-										if (sscanf(origin_val.c_str(), "%f %f %f", &x, &y, &z) == 3)
-										{
-											SpawnPoint sp;
-											sp.origin = Vector(x, y, z);
-											sp.last_active_time = -999.0f;
-											spawns_list.push_back(sp);
-										}
-									}
+									if (tolower(key[char_idx]) != "classname"[char_idx])
+										{ is_classname = false; break; }
+								}
+							}
+							else { is_classname = false; }
+
+							bool is_origin = true;
+							if (key.size() == 6)
+							{
+								for (int char_idx = 0; char_idx < 6; char_idx++)
+								{
+									if (tolower(key[char_idx]) != "origin"[char_idx])
+										{ is_origin = false; break; }
+								}
+							}
+							else { is_origin = false; }
+
+							if (is_classname)
+								classname = val;
+							else if (is_origin)
+								origin_val = val;
+						}
+
+						// Convert classname to lowercase for safe comparison
+						for (auto& c : classname) c = tolower(c);
+
+						if (classname == "info_player_deathmatch" ||
+							classname == "info_player_start" ||
+							classname == "info_player_coop")
+						{
+							if (!origin_val.empty())
+							{
+								float x, y, z;
+								if (sscanf(origin_val.c_str(), "%f %f %f", &x, &y, &z) == 3)
+								{
+									SpawnPoint sp;
+									sp.origin = Vector(x, y, z);
+									sp.last_active_time = -999.0f;
+									spawns_list.push_back(sp);
 								}
 							}
 						}
@@ -188,10 +239,16 @@ namespace spawns
 			if (ent->curstate.effects & EF_NODRAW)
 				continue;
 
+			// Check both predicted origin and raw packet state origin
+			Vector player_pos_predicted = ent->origin;
+			Vector player_pos_packet = ent->curstate.origin;
+
 			for (auto& sp : g_SpawnPoints)
 			{
-				float dist = (ent->origin - sp.origin).Length();
-				if (dist < 64.0f)
+				float dist_predicted = (player_pos_predicted - sp.origin).Length();
+				float dist_packet = (player_pos_packet - sp.origin).Length();
+
+				if (dist_predicted < 128.0f || dist_packet < 128.0f)
 				{
 					sp.last_active_time = current_time;
 				}
