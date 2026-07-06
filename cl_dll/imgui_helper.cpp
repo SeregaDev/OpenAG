@@ -256,8 +256,24 @@ static void GetInfoValue(const char* info, const char* key, char* out, size_t ou
 		size_t len = end ? (end - p) : strlen(p);
 		if (len >= outSize) len = outSize - 1;
 		strncpy(out, p, len);
-		out[len] = '\0';
 	}
+}
+
+static int GetTotalAGOnline()
+{
+	int total = 0;
+	if (g_pServers)
+	{
+		CHudServers::server_t* list = g_pServers->GetServersList();
+		while (list)
+		{
+			char current[16] = "0";
+			GetInfoValue(list->info, "current", current, sizeof(current));
+			total += atoi(current);
+			list = list->next;
+		}
+	}
+	return total;
 }
 
 static bool CaseInsensitiveContains(const char* haystack, const char* needle)
@@ -403,11 +419,59 @@ void ImGuiHelper_Draw()
 			gEngfuncs.pfnClientCmd("quit\n");
 		}
 
-		ImGui::End();
-		ImGui::PopStyleColor();
-		ImGui::PopStyleVar(2);
 	}
 	*/
+
+	// 1.5. Online player count overlay on top of original main menu
+	bool gameUIVisible = (g_pGameUI && g_pGameUI->IsGameUIVisible() != 0);
+	if ((gameUIVisible || onBackgroundMap || !hasMap) && !inGame)
+	{
+		static double last_query_time = -999.0;
+		double now = gEngfuncs.GetClientTime();
+		if (now - last_query_time > 30.0)
+		{
+			if (g_pServers && !g_pServers->IsRequesting())
+			{
+				g_pServers->RequestList();
+				last_query_time = now;
+			}
+		}
+
+		ImGuiWindowFlags overlay_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground;
+		
+		float ov_w = 175.0f;
+		float ov_h = 42.0f;
+		ImGui::SetNextWindowPos(ImVec2((float)ScreenWidth - ov_w - 20.0f, 20.0f), ImGuiCond_Always);
+		ImGui::SetNextWindowSize(ImVec2(ov_w, ov_h));
+		
+		if (ImGui::Begin("HUD Online Overlay", nullptr, overlay_flags))
+		{
+			ImDrawList* draw_list = ImGui::GetWindowDrawList();
+			ImVec2 p_min = ImGui::GetWindowPos();
+			ImVec2 p_max = ImVec2(p_min.x + ov_w, p_min.y + ov_h);
+			
+			draw_list->AddRectFilled(p_min, p_max, ImColor(12, 12, 14, 180), 8.0f);
+			draw_list->AddRect(p_min, p_max, ImColor(40, 40, 48, 120), 8.0f, 0, 1.0f);
+			
+			float pulse = 0.6f + 0.4f * sinf((float)now * 3.0f);
+			bool loading = g_pServers && g_pServers->IsRequesting();
+			ImColor dotColor = loading ? ImColor(50, 150, 255, (int)(255 * pulse)) : ImColor(50, 220, 100, (int)(255 * pulse));
+			
+			draw_list->AddCircleFilled(ImVec2(p_min.x + 18.0f, p_min.y + 21.0f), 4.5f, dotColor);
+			
+			ImGui::SetCursorPos(ImVec2(32.0f, 11.0f));
+			int online = GetTotalAGOnline();
+			if (loading)
+			{
+				ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.75f, 1.0f), "AG Online: %d*", online);
+			}
+			else
+			{
+				ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "AG Online: %d", online);
+			}
+		}
+		ImGui::End();
+	}
 
 	// 2. Pause Menu Overlay (when in-game and g_ShowPauseMenu is true)
 	if (g_ShowPauseMenu && inGame)
