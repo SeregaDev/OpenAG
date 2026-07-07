@@ -3,6 +3,7 @@
 #include "motion_blur.h"
 
 #include <SDL2/SDL_opengl.h>
+#include "opengl_compat.h"
 #include <math.h>
 
 namespace motion_blur

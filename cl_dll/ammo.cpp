@@ -827,6 +827,8 @@ void CHudAmmo::UserCmd_PrevWeapon(void)
 
 
 //-------------------------------------------------------------------------
+extern "C" struct cvar_s* cl_custom_hud;
+
 // Drawing code
 //-------------------------------------------------------------------------
 
@@ -847,7 +849,6 @@ int CHudAmmo::Draw(float flTime)
 	// Draw ammo pickup history
 	gHR.DrawAmmoHistory( flTime );
 
-	extern cvar_t* cl_custom_hud;
 	if (cl_custom_hud && cl_custom_hud->value != 0.0f)
 		return 1; // Bypass drawing classic bottom-right sprite ammo counter
 

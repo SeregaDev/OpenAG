@@ -19,8 +19,8 @@ extern "C" void HUD_UpdateCursorState();
 
 unsigned int g_dwKeyPressButtons = 0;
 static cvar_t* cl_keypress_overlay = nullptr;
-cvar_t* cl_custom_hud = nullptr;
-cvar_t* cl_custom_menu = nullptr;
+extern "C" struct cvar_s* cl_custom_hud = nullptr;
+extern "C" struct cvar_s* cl_custom_menu = nullptr;
 
 bool g_ShowImGuiMenu = false;
 bool g_ShowCrosshairEditor = false;
@@ -1112,6 +1112,84 @@ void ImGuiHelper_Draw()
 
 			if (ImGui::CollapsingHeader("Graphics / Post-Processing"))
 			{
+				ImGui::TextWrapped("These effects are heavier on old GoldSrc hardware. Keep them low or disabled for best FPS.");
+
+				cvar_t* pPostProcess = gEngfuncs.pfnGetCvarPointer("cl_pp_enabled");
+				bool postProcessVal = pPostProcess ? (pPostProcess->value != 0.0f) : false;
+				if (ImGui::Checkbox("Enable Post-Processing", &postProcessVal))
+				{
+					gEngfuncs.Cvar_SetValue("cl_pp_enabled", postProcessVal ? 1.0f : 0.0f);
+				}
+
+				if (postProcessVal)
+				{
+					cvar_t* pContrast = gEngfuncs.pfnGetCvarPointer("cl_pp_contrast");
+					float contrastVal = pContrast ? pContrast->value : 1.0f;
+					if (ImGui::SliderFloat("Contrast", &contrastVal, 0.6f, 1.8f, "%.2f"))
+					{
+						gEngfuncs.Cvar_SetValue("cl_pp_contrast", contrastVal);
+					}
+
+					cvar_t* pBrightness = gEngfuncs.pfnGetCvarPointer("cl_pp_brightness");
+					float brightnessVal = pBrightness ? pBrightness->value : 0.0f;
+					if (ImGui::SliderFloat("Brightness", &brightnessVal, -0.35f, 0.35f, "%.2f"))
+					{
+						gEngfuncs.Cvar_SetValue("cl_pp_brightness", brightnessVal);
+					}
+
+					cvar_t* pSaturation = gEngfuncs.pfnGetCvarPointer("cl_pp_saturation");
+					float saturationVal = pSaturation ? pSaturation->value : 1.0f;
+					if (ImGui::SliderFloat("Saturation", &saturationVal, 0.0f, 2.0f, "%.2f"))
+					{
+						gEngfuncs.Cvar_SetValue("cl_pp_saturation", saturationVal);
+					}
+
+					cvar_t* pVignette = gEngfuncs.pfnGetCvarPointer("cl_pp_vignette");
+					float vignetteVal = pVignette ? pVignette->value : 0.0f;
+					if (ImGui::SliderFloat("Vignette", &vignetteVal, 0.0f, 1.0f, "%.2f"))
+					{
+						gEngfuncs.Cvar_SetValue("cl_pp_vignette", vignetteVal);
+					}
+
+					cvar_t* pScanlines = gEngfuncs.pfnGetCvarPointer("cl_pp_scanlines");
+					float scanlinesVal = pScanlines ? pScanlines->value : 0.0f;
+					if (ImGui::SliderFloat("Scanlines", &scanlinesVal, 0.0f, 1.0f, "%.2f"))
+					{
+						gEngfuncs.Cvar_SetValue("cl_pp_scanlines", scanlinesVal);
+					}
+
+					cvar_t* pNoise = gEngfuncs.pfnGetCvarPointer("cl_pp_noise");
+					float noiseVal = pNoise ? pNoise->value : 0.0f;
+					if (ImGui::SliderFloat("Noise", &noiseVal, 0.0f, 1.0f, "%.2f"))
+					{
+						gEngfuncs.Cvar_SetValue("cl_pp_noise", noiseVal);
+					}
+
+					cvar_t* pTintStrength = gEngfuncs.pfnGetCvarPointer("cl_pp_tint_strength");
+					float tintStrengthVal = pTintStrength ? pTintStrength->value : 0.0f;
+					if (ImGui::SliderFloat("Tint Strength", &tintStrengthVal, 0.0f, 1.0f, "%.2f"))
+					{
+						gEngfuncs.Cvar_SetValue("cl_pp_tint_strength", tintStrengthVal);
+					}
+
+					if (tintStrengthVal > 0.0f)
+					{
+						cvar_t* pTintR = gEngfuncs.pfnGetCvarPointer("cl_pp_tint_r");
+						cvar_t* pTintG = gEngfuncs.pfnGetCvarPointer("cl_pp_tint_g");
+						cvar_t* pTintB = gEngfuncs.pfnGetCvarPointer("cl_pp_tint_b");
+						float tintRVal = pTintR ? pTintR->value : 1.0f;
+						float tintGVal = pTintG ? pTintG->value : 1.0f;
+						float tintBVal = pTintB ? pTintB->value : 1.0f;
+						if (ImGui::SliderFloat("Tint Red", &tintRVal, 0.0f, 1.5f, "%.2f"))
+							gEngfuncs.Cvar_SetValue("cl_pp_tint_r", tintRVal);
+						if (ImGui::SliderFloat("Tint Green", &tintGVal, 0.0f, 1.5f, "%.2f"))
+							gEngfuncs.Cvar_SetValue("cl_pp_tint_g", tintGVal);
+						if (ImGui::SliderFloat("Tint Blue", &tintBVal, 0.0f, 1.5f, "%.2f"))
+							gEngfuncs.Cvar_SetValue("cl_pp_tint_b", tintBVal);
+					}
+
+				}
+
 				cvar_t* pBloom = gEngfuncs.pfnGetCvarPointer("cl_bloom");
 				bool bloomVal = pBloom ? (pBloom->value != 0.0f) : false;
 				if (ImGui::Checkbox("Enable Bloom Effect", &bloomVal))

@@ -36,7 +36,11 @@ extern "C" {
 // so make sure engine declarations aren't done twice
 
 #ifndef HLSDK_HSPRITE_DEFINED
+#ifdef _WIN32
+typedef struct HSPRITE__ *HSPRITE;
+#else
 typedef int HSPRITE;	// handle to a graphic
+#endif
 #endif
 
 #define SCRINFO_SCREENFLASH 1

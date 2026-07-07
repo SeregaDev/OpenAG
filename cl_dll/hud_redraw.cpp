@@ -24,9 +24,10 @@
 #include "spawns.h"
 #include "bloom.h"
 #include "motion_blur.h"
+#include "post_processing.h"
 #include "vgui_TeamFortressViewport.h"
 
-extern cvar_t* cl_custom_hud;
+extern "C" struct cvar_s* cl_custom_hud;
 
 #define MAX_LOGO_FRAMES 56
 
@@ -281,6 +282,7 @@ int CHud :: Redraw( float flTime, int intermission )
 	spawns::update_and_draw();
 	// bloom::draw();
 	motion_blur::draw();
+	post_processing::draw();
 
 	return 1;
 }

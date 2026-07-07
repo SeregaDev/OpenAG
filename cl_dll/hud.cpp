@@ -41,6 +41,7 @@
 #include "spawns.h"
 #include "bloom.h"
 #include "motion_blur.h"
+#include "post_processing.h"
 
 hud_player_info_t	 g_PlayerInfoList[MAX_PLAYERS+1];	   // player info from the engine
 extra_player_info_t  g_PlayerExtraInfo[MAX_PLAYERS+1];   // additional player info sent directly to the client dll
@@ -527,6 +528,7 @@ void CHud :: Init( void )
 	spawns::init();
 	bloom::init();
 	motion_blur::init();
+	post_processing::init();
 
 	HOOK_COMMAND( "agrecord", Agrecord );
 	HOOK_COMMAND( "append", Append );

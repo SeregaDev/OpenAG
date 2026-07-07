@@ -17,7 +17,7 @@ extern bool g_ShowAGSettings;
 extern bool g_ShowPauseMenu;
 extern bool g_ShowMainMenu;
 extern bool g_IsBackgroundMap;
-extern struct cvar_s* cl_custom_hud;
+extern "C" struct cvar_s* cl_custom_hud;
 extern struct cvar_s* cl_custom_menu;
 
 void ImGuiHelper_UpdateInputState();

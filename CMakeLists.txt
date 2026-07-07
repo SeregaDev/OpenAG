@@ -103,6 +103,7 @@ target_include_directories(client PRIVATE
 	dlls
 	engine
 	external
+	cl_dll
 	external/imgui
 	external/imgui/backends
 	external/SDL2
@@ -188,7 +189,8 @@ if(WIN32)
 	target_compile_definitions(client PRIVATE
 		-D_CRT_SECURE_NO_WARNINGS
 		-DWINDOWS
-		-D_WINDOWS)
+		-D_WINDOWS
+		-DWINDOWS_IGNORE_PACKING_MISMATCH)
 
 	if(MINGW)
 		# MinGW cross-compilation: link against MinGW system libs only
